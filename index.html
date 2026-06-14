@@ -417,6 +417,9 @@ body{font-family:'Cairo',sans-serif;background:#eef2f7;color:#1a2640;direction:r
         <button onclick="exportAllSavedPDF()" class="db-btn" style="background:#e8a020;color:#fff;font-size:12px;padding:6px 14px;">
           📄 حفظ PDF الكل
         </button>
+        <button onclick="clearAllSnapshots()" class="db-btn" style="background:#c0392b;color:#fff;font-size:12px;padding:6px 14px;margin-right:auto;">
+          🗑 حذف الكل
+        </button>
         <!-- progress bar (hidden by default) -->
         <div id="dbPdfProgress" style="display:none;flex:1;min-width:160px;">
           <div style="font-size:10px;font-weight:700;color:#1a3a6b;margin-bottom:3px;" id="dbPdfLabel">جاري المعالجة...</div>
@@ -424,6 +427,35 @@ body{font-family:'Cairo',sans-serif;background:#eef2f7;color:#1a2640;direction:r
             <div id="dbPdfBar" style="background:#e8a020;height:100%;width:0%;border-radius:20px;transition:width .35s;"></div>
           </div>
           <div id="dbPdfCount" style="font-size:9px;color:#8a95a8;margin-top:2px;"></div>
+        </div>
+      </div>
+
+      <!-- ── إعادة توليد الكل ── -->
+      <div style="margin-bottom:12px;padding:12px 14px;background:#f0fff4;border:1px solid #6fcf97;border-radius:10px;">
+        <div style="font-size:12px;font-weight:700;color:#1a7a4a;margin-bottom:6px;">🔄 إعادة توليد جميع الجداول</div>
+        <div style="font-size:11px;color:#4a5568;margin-bottom:8px;">
+          الجدول المثبّت 📌 لا يتغير — يُولَّد الباقون بالترتيب بدون أي تعارض
+        </div>
+        <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;">
+          <div style="font-size:11px;color:#1a7a4a;font-weight:600;">جدولي المثبّت:</div>
+          <select id="pinnedTeacherSelect" style="flex:1;min-width:160px;padding:5px 8px;border-radius:7px;border:1px solid #6fcf97;font-family:Cairo,sans-serif;font-size:12px;direction:rtl;background:#fff;">
+            <option value="">— بدون تثبيت —</option>
+          </select>
+        </div>
+        <button onclick="regenerateAll()" id="btnRegenAll"
+          style="width:100%;margin-top:8px;padding:9px;border-radius:8px;border:none;
+                 background:#1a7a4a;color:#fff;font-family:Cairo,sans-serif;font-size:13px;
+                 font-weight:700;cursor:pointer;display:flex;align-items:center;
+                 justify-content:center;gap:6px;transition:all .2s;">
+          🔄 ابدأ إعادة التوليد
+        </button>
+        <!-- شريط التقدم -->
+        <div id="regenAllProgress" style="display:none;margin-top:10px;">
+          <div style="font-size:11px;font-weight:700;color:#1a3a6b;margin-bottom:4px;" id="regenAllLabel">جاري التوليد...</div>
+          <div style="background:#dde4ef;border-radius:20px;height:8px;overflow:hidden;">
+            <div id="regenAllBar" style="background:#1a7a4a;height:100%;width:0%;border-radius:20px;transition:width .4s;"></div>
+          </div>
+          <div id="regenAllStatus" style="font-size:10px;color:#4a5568;margin-top:4px;"></div>
         </div>
       </div>
 
@@ -555,9 +587,16 @@ body{font-family:'Cairo',sans-serif;background:#eef2f7;color:#1a2640;direction:r
       <button class="btn btn-sm-sec" onclick="regenerate()">🔄 إعادة توليد</button>
       <button class="btn btn-sm-sec" onclick="clearSched()">🗑 مسح</button>
     </div>
+    <div style="display:flex;gap:6px;margin-top:7px;">
+      <button class="btn btn-sm-sec" style="flex:1;background:#fff3e0;color:#c07800;border-color:#f0c040;font-size:12px;" onclick="pinAllSlots()">📌 تثبيت الكل</button>
+      <button class="btn btn-sm-sec" style="flex:1;font-size:12px;" onclick="unpinAllSlots()">🔓 فك التثبيت</button>
+    </div>
     <button onclick="openSaveModal()" style="width:100%;margin-top:9px;padding:9px;border-radius:8px;border:1px solid #1a7a4a;background:#e8f5e9;font-family:Cairo,sans-serif;font-size:13px;font-weight:700;color:#1a7a4a;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;" onmouseover="this.style.background='#1a7a4a';this.style.color='#fff'" onmouseout="this.style.background='#e8f5e9';this.style.color='#1a7a4a'">
       💾 حفظ في قاعدة البيانات
     </button>
+    <div id="activeSchedsInfo" style="display:none;margin-top:8px;padding:7px 10px;background:#f0f5ff;border:1px solid #c0d0f0;border-radius:8px;font-size:11px;color:#1a3a6b;font-weight:600;text-align:center;">
+      🔒 <span id="activeSchedsCount">0</span> جدول نشط يُفحص عند التوليد
+    </div>
   </div>
 
 </aside>
@@ -568,7 +607,7 @@ body{font-family:'Cairo',sans-serif;background:#eef2f7;color:#1a2640;direction:r
     <div class="sbox"><div class="sn" id="sTotal">0</div><div class="sl">إجمالي الحصص</div></div>
     <div class="sbox g"><div class="sn" id="sFilled">0</div><div class="sl">مجدولة</div></div>
     <div class="sbox a"><div class="sn" id="sFree">0</div><div class="sl">فراغات</div></div>
-    <div class="sbox"><div class="sn" id="sPref">—</div><div class="sl">تحقيق التفضيلات</div></div>
+    <div class="sbox"><div class="sn" id="sPref">—</div><div class="sl">جودة الجدول</div></div>
   </div>
   <div class="toolbar">
     <div class="tb-l" id="tbLabel">الجدول الأسبوعي</div>
@@ -727,8 +766,9 @@ function S(){ return getActiveTeacher(); }
    INDEXED DB — قاعدة البيانات المحلية
 ============================================================ */
 const DB_NAME = 'SchoolSchedulesDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = 'snapshots';
+const ACTIVE_STORE = 'active_schedules';
 let db = null;
 
 function openDB(){
@@ -741,6 +781,9 @@ function openDB(){
         store.createIndex('teacherName','teacherName',{unique:false});
         store.createIndex('school','school',{unique:false});
         store.createIndex('savedAt','savedAt',{unique:false});
+      }
+      if(!d.objectStoreNames.contains(ACTIVE_STORE)){
+        d.createObjectStore(ACTIVE_STORE,{keyPath:'teacherKey'});
       }
     };
     req.onsuccess = e => { db=e.target.result; resolve(db); };
@@ -782,6 +825,73 @@ function dbDelete(id){
     req.onsuccess = ()=>resolve();
     req.onerror   = ()=>reject(req.error);
   });
+}
+
+/* ── Active Schedules: نسخة نشطة واحدة لكل معلم ── */
+function makeTeacherKey(t){ return `${(t.name||'').trim()}|${(t.school||'').trim()}`; }
+
+function dbActiveAll(){
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(ACTIVE_STORE,'readonly');
+    const req = tx.objectStore(ACTIVE_STORE).getAll();
+    req.onsuccess = ()=>resolve(req.result||[]);
+    req.onerror   = ()=>reject(req.error);
+  });
+}
+function dbActivePut(rec){
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(ACTIVE_STORE,'readwrite');
+    const req = tx.objectStore(ACTIVE_STORE).put(rec);
+    req.onsuccess = ()=>resolve();
+    req.onerror   = ()=>reject(req.error);
+  });
+}
+function dbActiveDelete(key){
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(ACTIVE_STORE,'readwrite');
+    const req = tx.objectStore(ACTIVE_STORE).delete(key);
+    req.onsuccess = ()=>resolve();
+    req.onerror   = ()=>reject(req.error);
+  });
+}
+
+async function saveActiveSchedule(t){
+  if(!t||!t.sched) return;
+  try{
+    await dbActivePut({
+      teacherKey: makeTeacherKey(t),
+      teacherName: t.name,
+      school: t.school,
+      savedAt: Date.now(),
+      sched: JSON.parse(JSON.stringify(t.sched))
+    });
+    _cachedSavedScheds = null;
+    updateActiveSchedsInfo();
+  }catch(e){ console.warn('saveActiveSchedule error:',e); }
+}
+
+async function loadAllActiveScheds(currentTeacher){
+  try{
+    const all = await dbActiveAll();
+    const myKey = currentTeacher ? makeTeacherKey(currentTeacher) : null;
+    return all.filter(r=>r.sched && r.teacherKey!==myKey).map(r=>r.sched);
+  }catch(e){ return []; }
+}
+
+async function updateActiveSchedsInfo(){
+  try{
+    const all = await dbActiveAll();
+    const t = getActiveTeacher();
+    const myKey = t ? makeTeacherKey(t) : null;
+    const dbOthers = all.filter(r=>r.teacherKey!==myKey).length;
+    const sessionOthers = teachers.filter(ot=>ot.id!==(t&&t.id)&&ot.sched).length;
+    const total = dbOthers + sessionOthers;
+    const el = document.getElementById('activeSchedsInfo');
+    const cn = document.getElementById('activeSchedsCount');
+    if(!el) return;
+    if(total>0){ el.style.display=''; cn.textContent=total; }
+    else el.style.display='none';
+  }catch(e){}
 }
 
 /* ── Snapshot builder: serialize current teacher state ── */
@@ -833,6 +943,10 @@ async function confirmSave(){
   }
   try{
     await dbPut(snap);
+    // حفظ نسخة نشطة (نسخة واحدة فقط لكل معلم)
+    const t = getActiveTeacher();
+    if(t && t.sched) await saveActiveSchedule(t);
+    _cachedSavedScheds = null; _cachedSavedTime = 0; _cachedForKey = null; // إبطال فوري
     document.getElementById('modalSave').classList.remove('on');
     toast(`✓ تم الحفظ: ${label||snap.teacherName}`,'ok');
     _pendingSaveId = null;
@@ -844,6 +958,21 @@ async function confirmSave(){
 /* ── Open DB browser modal ── */
 async function openDBModal(){
   await renderDBList();
+  // ملء قائمة اختيار الجدول المثبّت
+  try{
+    const all = await dbAll();
+    const unique = [];
+    const seen = new Set();
+    all.forEach(s=>{
+      const k = `${s.teacherName}|${s.school}`;
+      if(!seen.has(k)){ seen.add(k); unique.push(s); }
+    });
+    const sel = document.getElementById('pinnedTeacherSelect');
+    if(sel){
+      sel.innerHTML = '<option value="">— بدون تثبيت (ولّد الكل) —</option>' +
+        unique.map(s=>`<option value="${s.teacherName}|${s.school}">${s.teacherName} — ${s.school}</option>`).join('');
+    }
+  }catch(e){}
   document.getElementById('modalDB').classList.add('on');
 }
 
@@ -928,12 +1057,10 @@ async function renderDBList(){
 async function loadSnapshot(id){
   const snap = await dbGet(id);
   if(!snap){toast('لم يُعثر على السجل','err');return;}
-  // Check if teacher already exists
   const existing = teachers.find(t=>t.name===snap.teacherName && t.school===snap.school);
   const proceed = ()=>{
     const restored = JSON.parse(JSON.stringify(snap.data));
-    restored.id = Date.now(); // new runtime ID
-    // Ensure nid is valid
+    restored.id = Date.now();
     let maxNid=1;
     (restored.subjects||[]).forEach(s=>{ if(s.id>=maxNid) maxNid=s.id+1; });
     restored.nid = maxNid;
@@ -941,6 +1068,7 @@ async function loadSnapshot(id){
     switchTeacher(restored.id);
     renderTeacherTabs();
     closeDBModal();
+    updateActiveSchedsInfo();
     toast(`✓ تم تحميل جدول "${snap.teacherName}"`,'ok');
   };
   if(existing){
@@ -973,8 +1101,12 @@ async function overwriteSnapshot(id){
   newSnap.savedAt = snap.savedAt;
   newSnap.updatedAt = Date.now();
   await dbPut(newSnap);
+  const t = getActiveTeacher();
+  if(t && t.sched) await saveActiveSchedule(t);
+  _cachedSavedScheds = null; _cachedSavedTime = 0; _cachedForKey = null;
   toast('✓ تم تحديث الجدول المحفوظ','ok');
   renderDBList();
+  updateActiveSchedsInfo();
 }
 
 /* ── Duplicate snapshot ── */
@@ -997,8 +1129,37 @@ async function deleteSnapshot(id){
   if(!snap) return;
   if(!confirm(`هل تريد حذف "${snap.label||snap.teacherName}" نهائياً؟`)) return;
   await dbDelete(id);
+  // دائماً نظّف active_schedules لهذا المعلم — لا ننتظر التحقق من النسخ
+  const key = `${(snap.teacherName||'').trim()}|${(snap.school||'').trim()}`;
+  await dbActiveDelete(key).catch(()=>{});
+  // إذا بقيت نسخ أخرى لهذا المعلم، أعد كتابة النسخة النشطة بأحدثها
+  const remaining = (await dbAll()).filter(s=>s.teacherName===snap.teacherName && s.school===snap.school);
+  if(remaining.length>0){
+    const latest = remaining.sort((a,b)=>(b.savedAt||0)-(a.savedAt||0))[0];
+    await dbActivePut({ teacherKey:key, teacherName:latest.teacherName, school:latest.school, savedAt:Date.now(), sched: latest.data?.sched||null });
+  }
+  // إبطال الكاش كاملاً
+  _cachedSavedScheds = null; _cachedSavedTime = 0; _cachedForKey = null;
   toast('تم الحذف ✓','ok');
   renderDBList();
+  updateActiveSchedsInfo();
+}
+
+/* ── حذف جميع الجداول المحفوظة دفعة واحدة ── */
+async function clearAllSnapshots(){
+  const all = await dbAll();
+  if(!all.length){ toast('لا توجد جداول محفوظة','err'); return; }
+  if(!confirm(`سيتم حذف جميع الجداول المحفوظة (${all.length} جدول) نهائياً.\nهل أنت متأكد؟`)) return;
+  // حذف كل snapshots
+  for(const s of all) await dbDelete(s.id).catch(()=>{});
+  // حذف كل active_schedules
+  const actives = await dbActiveAll().catch(()=>[]);
+  for(const a of actives) await dbActiveDelete(a.teacherKey).catch(()=>{});
+  // إبطال الكاش كاملاً
+  _cachedSavedScheds = null; _cachedSavedTime = 0; _cachedForKey = null;
+  toast('✓ تم حذف جميع الجداول المحفوظة','ok');
+  renderDBList();
+  updateActiveSchedsInfo();
 }
 
 /* ── Close DB modal on background click ── */
@@ -1015,12 +1176,12 @@ document.addEventListener('DOMContentLoaded',()=>{
    INIT
 ============================================================ */
 window.addEventListener('DOMContentLoaded',async ()=>{
-  // Open IndexedDB first
   try{ await openDB(); } catch(e){ console.error('IndexedDB error:',e); }
-  // Create first teacher
   addNewTeacher('أ/   مهند صلوي','مدارس ابن رشد جازان ');
   renderSettingsPeriods();
   renderSettingsDays();
+  // تحديث مؤشر الجداول النشطة بعد التهيئة
+  setTimeout(updateActiveSchedsInfo, 400);
 });
 
 /* ============================================================
@@ -1041,14 +1202,15 @@ function addNewTeacher(name, school){
 }
 
 function switchTeacher(id){
-  // Save current panel inputs first
   saveCurrentPanelToState();
   activeTeacherId = id;
+  _cachedSavedScheds = null; _cachedSavedTime = 0; _cachedForKey = null;
   loadTeacherToPanel();
   renderTeacherTabs();
   renderSubjects();
   renderPrefs();
   updateStats();
+  updateActiveSchedsInfo();
   const t = getActiveTeacher();
   if(t && t.sched) renderSched();
   else {
@@ -1423,7 +1585,8 @@ function getAllSlots(){
         slots.push({
           subjId:subj.id, subjName:subj.name,
           classId:cls.id, className:cls.name, level:cls.level,
-          key:`${subj.id}_${cls.id}` // unique per (subject,class) pair
+          weeklyHours: sc.hours, // إجمالي حصص هذه المادة+الفصل أسبوعياً
+          key:`${subj.id}_${cls.id}`
         });
       }
     });
@@ -1433,34 +1596,114 @@ function getAllSlots(){
 
 
 
+// كاش جداول نشطة للتعديل اليدوي السريع
+let _cachedSavedScheds = null;
+let _cachedSavedTime = 0;
+let _cachedForKey = null;
+
+async function loadSavedSchedsCache(myTeacherName){
+  const now = Date.now();
+  const t = getActiveTeacher();
+  const myKey = t ? makeTeacherKey(t) : (myTeacherName||'');
+  if(_cachedSavedScheds && _cachedForKey===myKey && (now-_cachedSavedTime)<30000) return _cachedSavedScheds;
+  try{
+    const all = await dbActiveAll();
+    _cachedSavedScheds = all.filter(r=>r.sched && r.teacherKey!==myKey).map(r=>r.sched);
+    _cachedSavedTime = now;
+    _cachedForKey = myKey;
+  }catch(e){ _cachedSavedScheds=[]; }
+  return _cachedSavedScheds;
+}
+
+/* ── C5 helper: فحص تكرار المادة+الفصل مع قاعدة يوم واحد للحصتين ── */
+function checkC5(sched, day, period, subjId, classId, weeklyHours){
+  // استثناء الخانة الحالية (عند التعديل)
+  const todayCount = PERIODS.filter(p=>{
+    if(p===period) return false;
+    const v=sched[day]&&sched[day][p];
+    return v && v.subjId===subjId && v.classId===classId;
+  }).length;
+
+  if(weeklyHours<=5){
+    if(todayCount>=1) return '⚠️ C5: هذه المادة مكررة في نفس اليوم (≤5 حصص أسبوعياً)';
+  } else {
+    if(todayCount>=2) return '⚠️ C5: هذه المادة تظهر أكثر من مرتين في نفس اليوم';
+    if(todayCount===1){
+      // هذا اليوم سيصبح يوم الحصتين — تحقق أنه لا يوجد يوم آخر فيه حصتان
+      const doubleDay = DAYS.find(d=>{
+        if(d===day) return false;
+        const dSlots = Object.values(sched[d]||{}).filter(Boolean);
+        return dSlots.filter(v=>v.subjId===subjId && v.classId===classId).length>=2;
+      });
+      if(doubleDay) return `⚠️ C5: يوم الحصتين (${doubleDay}) مُستخدم بالفعل — حصتان في يوم واحد فقط`;
+    }
+  }
+  return null; // لا تعارض
+}
+
 function isClassBusyElsewhere(day, period, classId, currentTeacherId){
-  return teachers.some(t => {
+  // فحص المعلمين في الجلسة الحالية
+  const busySession = teachers.some(t => {
     if(t.id === currentTeacherId) return false;
     if(!t.sched || !t.sched[day]) return false;
     const slot = t.sched[day][period];
     return slot && slot.classId === classId;
   });
+  if(busySession) return true;
+  // فحص الجداول المحفوظة في DB (من الكاش)
+  if(_cachedSavedScheds){
+    return _cachedSavedScheds.some(ss => {
+      const slot = ss[day] && ss[day][period];
+      return slot && slot.classId === classId;
+    });
+  }
+  return false;
 }
 
 /* ── Hard-constraint check ───────────────────────────────── */
-function isLegal(sched, day, period, slot){
-  // HC0: منع الحصة الثامنة يوم الخميس (إذا كان الخيار مفعّلاً)
-  if(blockThursday8 && day === 'الخميس' && period === 8) return false;
-
-  // HC1: خانة فارغة
+function isLegal(sched, day, period, slot, t, allTeachersScheds){
+  if(blockThursday8 && day==='الخميس' && period===8) return false;
   if(sched[day][period]) return false;
 
   const daySlots = Object.values(sched[day]).filter(Boolean);
 
-// نفس الفصل + نفس المادة لا يظهران في نفس الحصة (نفس الوقت) فقط
-// يُسمح بتكرار نفس الفصل + نفس المادة في أيام مختلفة
-// لكن لا يُسمح بأكثر من حصتين لنفس الفصل + نفس المادة في اليوم الواحد
-if(daySlots.some(v => v.classId === slot.classId)) return false;
-  // HC5: حصة الاجتماع محجوزة — لا يُجدَّل فيها شيء
-  const t=getActiveTeacher();
+  // C4: أقصى 6 حصص للمعلم في اليوم
+  if(daySlots.length >= 6) return false;
+
+  // C1: تعارض الفصول بين المعلمين في نفس اليوم+الحصة (نفس الفصل + نفس الوقت)
+  if(allTeachersScheds){
+    for(const os of allTeachersScheds){
+      const ov = os[day] && os[day][period];
+      if(ov && ov.classId===slot.classId) return false;
+    }
+  }
+
+  // C5: تكرار نفس المادة+نفس الفصل في اليوم
+  // يُسمح بمادة مختلفة لنفس الفصل في نفس اليوم
+  const wh = slot.weeklyHours || 0;
+  if(wh <= 5){
+    // ≤5 حصص → حصة واحدة فقط لنفس المادة+الفصل في اليوم
+    if(daySlots.some(v=>v.subjId===slot.subjId && v.classId===slot.classId)) return false;
+  } else {
+    // ≥6 حصص → يُسمح بحصتين في يوم واحد فقط، بقية الأيام حصة واحدة
+    const todayCount = daySlots.filter(v=>v.subjId===slot.subjId && v.classId===slot.classId).length;
+    if(todayCount >= 2) return false; // لا أكثر من حصتين في أي يوم
+
+    if(todayCount === 1){
+      // هذا اليوم سيصبح يوم الحصتين — تحقق أنه لا يوجد يوم آخر بالفعل فيه حصتان
+      const doubleAlreadyExists = DAYS.some(d=>{
+        if(d === day) return false;
+        const dSlots = Object.values(sched[d]).filter(Boolean);
+        return dSlots.filter(v=>v.subjId===slot.subjId && v.classId===slot.classId).length >= 2;
+      });
+      if(doubleAlreadyExists) return false;
+    }
+  }
+
+  // خانات الاجتماع
   if(t){
-    const meetingBlocks=getMeetingBlocks(t);
-    if(meetingBlocks[`${day}_${period}`]) return false;
+    const mb = getMeetingBlocks(t);
+    if(mb[`${day}_${period}`]) return false;
   }
 
   return true;
@@ -1487,7 +1730,14 @@ function softScore(sched, day, period, slot, t){
 }
 
 /* ── Core scheduler (single attempt) ─────────────────────── */
-function trySchedule(slots, pinnedSeed, t){
+function trySchedule(slots, pinnedSeed, t, extraScheds){
+  // جمع جداول المعلمين الآخرين من الجلسة الحالية
+  const sessionScheds = teachers
+    .filter(ot => ot.id !== t.id && ot.sched)
+    .map(ot => ot.sched);
+  // إضافة الجداول المحفوظة في DB (تُمرَّر من generate)
+  const allTeachersScheds = [...sessionScheds, ...(extraScheds||[])];
+
   // ابدأ بالخانات المثبتة من البذرة
   const sched = {};
   DAYS.forEach(d=>{ sched[d]={}; });
@@ -1499,12 +1749,13 @@ function trySchedule(slots, pinnedSeed, t){
     });
   }
 
-  // رتِّب slots: الفصل الأكثر ظهورًا أولاً (MRV)
+  // رتِّب slots: الأصعب تعييناً أولاً (MRV)
+  // الفصل الأكثر ظهوراً + المادة ذات الحصص الأكثر → أولوية أعلى
   const classCount = {};
   slots.forEach(s=>{ classCount[s.classId]=(classCount[s.classId]||0)+1; });
   const pool = [...slots].sort((a,b)=>(classCount[b.classId]||0)-(classCount[a.classId]||0));
 
-  // خلط خفيف للتنويع مع الحفاظ على الترتيب النسبي
+  // خلط خفيف للتنويع
   for(let i=pool.length-1;i>0;i--){
     if(Math.random()<0.3){
       const j=Math.floor(Math.random()*(i+1));
@@ -1512,52 +1763,106 @@ function trySchedule(slots, pinnedSeed, t){
     }
   }
 
+  // عدّاد لكم وُضع من كل (subjId+classId) حتى الآن
+  const placedCount = {};
+
   for(const slot of pool){
-    // تجاهل ما هو مثبت بالفعل
-    let alreadyPlaced = false;
-    for(const d of DAYS){
-      for(const p of PERIODS){
-        if(sched[d][p] && sched[d][p].classId===slot.classId
-           && sched[d][p].subjId===slot.subjId && !alreadyPlaced){
-          // تحقق هل هذا الـslot بالفعل مُعيَّن (نعدّ)
+    const slotKey = `${slot.subjId}_${slot.classId}`;
+
+    // إذا كانت هذه الحصة مثبّتة بالفعل في pinnedSeed، لا تُعيد جدولتها
+    if(pinnedSeed){
+      let isPinned = false;
+      for(const d of DAYS){
+        for(const p of PERIODS){
+          const ps = pinnedSeed[d] && pinnedSeed[d][p];
+          if(ps && ps.subjId===slot.subjId && ps.classId===slot.classId){
+            // هل تم حساب هذه المثبّتة؟
+            if(!(placedCount[slotKey] > 0)){
+              isPinned = true;
+              placedCount[slotKey] = (placedCount[slotKey]||0)+1;
+              break;
+            }
+          }
         }
+        if(isPinned) break;
       }
+      if(isPinned) continue;
     }
 
-    // ابحث عن أفضل خانة تُحقق القيود الصارمة
+    // ابحث عن أفضل خانة تُحقق جميع القيود الصارمة
     let best=null, bScore=-Infinity;
     for(const day of DAYS){
       for(const period of PERIODS){
-        if(!isLegal(sched, day, period, slot)) continue;
+        if(!isLegal(sched, day, period, slot, t, allTeachersScheds)) continue;
         const sc = softScore(sched, day, period, slot, t);
         if(sc > bScore){ bScore=sc; best={day,period}; }
       }
     }
     if(!best) return null; // فشل — نحتاج restart
     sched[best.day][best.period]={...slot, pinned:false};
+    placedCount[slotKey] = (placedCount[slotKey]||0)+1;
   }
   return sched;
 }
 
 /* ── Validation: فحص التعارضات بعد التوليد ──────────────── */
-function validateSched(sched){
+function validateSched(sched, teacherId, savedScheds){
   const conflicts=[];
   DAYS.forEach(day=>{
     const daySlots=[];
     PERIODS.forEach(p=>{
-      const v=sched[day][p];
-      if(!v) return;
-      // تحقق: هل نفس الفصل في نفس اليوم مرتين؟
-const prev=daySlots.find(s=>s.classId===v.classId);
-if(prev) conflicts.push(`تعارض: ${v.className} يظهر مرتين في ${day}`);
+      const v=sched[day][p]; if(!v) return;
+
+      // C5: تكرار نفس المادة+نفس الفصل
+      const wh = v.weeklyHours||0;
+      if(wh<=5){
+        if(daySlots.some(s=>s.subjId===v.subjId && s.classId===v.classId))
+          conflicts.push(`تكرار مادة: ${v.subjName} - ${v.className} في ${day} (${wh} حصص أسبوعياً)`);
+      } else {
+        const todayCount = daySlots.filter(s=>s.subjId===v.subjId && s.classId===v.classId).length;
+        if(todayCount>=2)
+          conflicts.push(`تكرار زائد: ${v.subjName} - ${v.className} في ${day}`);
+        // تحقق أن يوم الحصتين واحد فقط
+        if(todayCount===1){
+          const prevDoubleDays = DAYS.filter(d=>{
+            if(d===day) return false;
+            const dSlots = Object.values(sched[d]).filter(Boolean);
+            return dSlots.filter(s=>s.subjId===v.subjId && s.classId===v.classId).length>=2;
+          });
+          if(prevDoubleDays.length>0)
+            conflicts.push(`حصتان في أكثر من يوم: ${v.subjName} - ${v.className} (${prevDoubleDays.join('، ')} و${day})`);
+        }
+      }
       daySlots.push(v);
+    });
+
+    // C4: أكثر من 6 حصص في يوم
+    if(daySlots.length>6)
+      conflicts.push(`تجاوز الحد اليومي: ${daySlots.length} حصص في ${day}`);
+
+    // C1: تعارض مع المعلمين الآخرين
+    PERIODS.forEach(p=>{
+      const v=sched[day][p]; if(!v) return;
+      teachers.forEach(ot=>{
+        if(ot.id===teacherId||!ot.sched) return;
+        const ov=ot.sched[day]&&ot.sched[day][p];
+        if(ov&&ov.classId===v.classId)
+          conflicts.push(`تعارض معلمين: ${v.className} في ${day} ح${p}`);
+      });
+      if(savedScheds){
+        savedScheds.forEach(ss=>{
+          const sv=ss[day]&&ss[day][p];
+          if(sv&&sv.classId===v.classId)
+            conflicts.push(`تعارض مع محفوظ: ${v.className} في ${day} ح${p}`);
+        });
+      }
     });
   });
   return conflicts;
 }
 
 /* ── Main generate (مع إعادة المحاولة) ──────────────────── */
-function generate(){
+async function generate(){
   const t=getActiveTeacher(); if(!t) return;
   const slots=getAllSlots();
   if(!slots.length){toast('أضف مادة وفصولاً أولاً','err');return;}
@@ -1575,31 +1880,39 @@ function generate(){
     if(!classPerSubj[s.subjId]) classPerSubj[s.subjId]=new Set();
     classPerSubj[s.subjId].add(s.classId);
   });
-  // كل فصل بحاجة ليومٍ خاص به في كل حصة → لا يمكن وضع أكثر من 5 فصول/حصص في يوم
-const maxPerDay = DAYS.length * 2 // 5
- const classSubjHoursPerDay={};
-slots.forEach(s=>{
-  const key=`${s.classId}__${s.subjId}`;
-  classSubjHoursPerDay[key]=(classSubjHoursPerDay[key]||0)+1;
-});
-for(const [key,hrs] of Object.entries(classSubjHoursPerDay)){
-  if(hrs>maxPerDay){
-    const [clsId]=key.split('__');
-    const clsInfo=ALL_CLASSES.find(c=>c.id===clsId);
-    const subjInfo=t.subjects.find(s=>String(s.id)===key.split('__')[1]);
-    toast(`الفصل "${clsInfo?clsInfo.name:clsId}" - ${subjInfo?subjInfo.name:'مادة'} لديه ${hrs} حصص لكن الأيام المتاحة ${maxPerDay} فقط`,'err');
-    return;
+  // تحقق مبكر: هل عدد الحصص قابل للتوزيع على الأيام؟
+  // إذا كانت الحصص ≤ 5 → حصة واحدة لكل يوم → الحد = عدد الأيام (5)
+  // إذا كانت الحصص ≥ 6 → يُسمح بحصتين في يوم → الحد = عدد الأيام × 2 (10)
+  const classSubjHoursMap={};
+  slots.forEach(s=>{
+    const key=`${s.classId}__${s.subjId}`;
+    if(!classSubjHoursMap[key]) classSubjHoursMap[key]={hrs:0,wh:s.weeklyHours,classId:s.classId,subjId:s.subjId};
+    classSubjHoursMap[key].hrs++;
+  });
+  for(const item of Object.values(classSubjHoursMap)){
+    const maxAllowed = item.wh>=6 ? DAYS.length*2 : DAYS.length;
+    if(item.hrs > maxAllowed){
+      const clsInfo=ALL_CLASSES.find(c=>c.id===item.classId);
+      const subjInfo=t.subjects.find(s=>s.id===item.subjId||String(s.id)===String(item.subjId));
+      toast(`الفصل "${clsInfo?clsInfo.name:item.classId}" - ${subjInfo?subjInfo.name:'مادة'}: ${item.hrs} حصص لكن الحد الأقصى ${maxAllowed} (${item.wh>=6?'حصتان/يوم':'حصة/يوم'})`,'err');
+      return;
+    }
   }
-}
 
-  // محاولات متعددة (Restart strategy)
+  // تحميل الجداول النشطة من DB لفحص التعارض الشامل
+  toast('⏳ جاري تحميل الجداول النشطة...','');
+  const savedScheds = await loadAllActiveScheds(t);
+  // أضف جداول المعلمين الآخرين في الجلسة الحالية
+  teachers.forEach(ot=>{ if(ot.id!==t.id&&ot.sched) savedScheds.push(ot.sched); });
+  console.log(`[generate] ${savedScheds.length} جدول للفحص`);
+
   const MAX_TRIES=50;
   let sched=null;
   for(let attempt=0; attempt<MAX_TRIES; attempt++){
-    sched=trySchedule(slots, null, t);
+    sched=trySchedule(slots, null, t, savedScheds);
     if(sched){
-      const errs=validateSched(sched);
-      if(errs.length===0) break; // نجاح!
+      const errs=validateSched(sched, t.id, savedScheds);
+      if(errs.length===0) break;
       sched=null;
     }
   }
@@ -1614,11 +1927,12 @@ for(const [key,hrs] of Object.entries(classSubjHoursPerDay)){
   renderPrefs();
   renderSched();
   updateStats();
-  renderTeacherTabs(); // update ✓ badge
-  toast('✓ تم توليد الجدول — اضغط 💾 حفظ لحفظه','ok');
+  renderTeacherTabs();
+  updateActiveSchedsInfo();
+  toast(`✓ تم التوليد بدون تعارض مع ${savedScheds.length} جدول`,'ok');
 }
 
-function regenerate(){
+async function regenerate(){
   const t=getActiveTeacher(); if(!t) return;
   if(!t.sched){generate();return;}
 
@@ -1632,17 +1946,26 @@ function regenerate(){
   const slots=getAllSlots();
   if(!slots.length){toast('أضف مادة وفصولاً أولاً','err');return;}
 
-  // احذف الحصص المثبتة من الـpool (لا تُعاد جدولتها)
-  const pinnedKeys=new Set();
-  DAYS.forEach(d=>{ Object.values(pinnedSeed[d]).forEach(v=>{ if(v) pinnedKeys.add(`${v.subjId}_${v.classId}`); }); });
-  const freeSlots=slots.filter(s=>!pinnedKeys.has(s.key));
+  // احسب كم حصة مثبتة لكل (subjId_classId) وخصمها من pool
+  const pinnedCountMap={};
+  DAYS.forEach(d=>{ Object.values(pinnedSeed[d]).forEach(v=>{ if(v){ const k=`${v.subjId}_${v.classId}`; pinnedCountMap[k]=(pinnedCountMap[k]||0)+1; } }); });
+  const usedCount={};
+  const freeSlots=slots.filter(s=>{
+    const k=s.key; const pinned=pinnedCountMap[k]||0; const used=usedCount[k]||0;
+    if(used<pinned){ usedCount[k]=used+1; return false; }
+    return true;
+  });
+
+  // تحميل الجداول النشطة
+  const savedScheds = await loadAllActiveScheds(t);
+  teachers.forEach(ot=>{ if(ot.id!==t.id&&ot.sched) savedScheds.push(ot.sched); });
 
   const MAX_TRIES=50;
   let sched=null;
   for(let attempt=0;attempt<MAX_TRIES;attempt++){
-    sched=trySchedule(freeSlots, pinnedSeed, t);
+    sched=trySchedule(freeSlots, pinnedSeed, t, savedScheds);
     if(sched){
-      const errs=validateSched(sched);
+      const errs=validateSched(sched, t.id, savedScheds);
       if(errs.length===0) break;
       sched=null;
     }
@@ -1655,7 +1978,23 @@ function regenerate(){
   renderPrefs();
   renderSched(); updateStats();
   renderTeacherTabs();
-  toast('✓ تمت إعادة التوليد بدون تعارض','ok');
+  updateActiveSchedsInfo();
+  toast(`✓ تمت إعادة التوليد بدون تعارض مع ${savedScheds.length} جدول`,'ok');
+}
+
+function pinAllSlots(){
+  const t=getActiveTeacher(); if(!t||!t.sched){toast('ولّد الجدول أولاً','err');return;}
+  let n=0;
+  DAYS.forEach(d=>PERIODS.forEach(p=>{ const v=t.sched[d]&&t.sched[d][p]; if(v){v.pinned=true;n++;} }));
+  renderSched();
+  toast(`📌 تم تثبيت ${n} حصة — لن تتغير عند إعادة التوليد`,'ok');
+}
+
+function unpinAllSlots(){
+  const t=getActiveTeacher(); if(!t||!t.sched){toast('لا يوجد جدول','err');return;}
+  DAYS.forEach(d=>PERIODS.forEach(p=>{ const v=t.sched[d]&&t.sched[d][p]; if(v) v.pinned=false; }));
+  renderSched();
+  toast('🔓 تم فك تثبيت جميع الحصص','ok');
 }
 
 function clearSched(){
@@ -1752,7 +2091,9 @@ return `<td>
             ondragleave="this.style.outline=''"
             ondrop="dDrop(event,'${day}',${col.n});this.style.outline=''"
             onclick="openEdit('${day}',${col.n})">
-            ${slot.pinned?'<span class="gc-pin">📌</span>':''}
+            <button onclick="event.stopPropagation();togglePin('${day}',${col.n})"
+              title="${slot.pinned?'إلغاء التثبيت':'تثبيت الحصة'}"
+              style="position:absolute;top:2px;left:2px;background:${slot.pinned?'#ffd700':'rgba(0,0,0,0.08)'};border:none;border-radius:4px;width:18px;height:18px;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;padding:0;z-index:2;">${slot.pinned?'📌':'🔓'}</button>
             <span class="gc-pref-dot" style="background:${isPref?'#1a7a4a':isDis?'#c0392b':'transparent'}"></span>
             <div class="gc-subj" style="color:${c.text};font-weight:700;">${slot.subjName}</div>
             <div class="gc-cls" style="color:${c.text};">${slot.className}</div>
@@ -1829,7 +2170,7 @@ return `<td>
       </div>
 
       <!-- Conflict Banner -->
-      ${(()=>{ const errs=validateSched(t.sched); return errs.length>0 ? `<div style="background:#fce4e4;border:2px solid #c0392b;border-radius:8px;padding:9px 16px;margin:8px 16px;font-size:12px;font-weight:700;color:#c0392b;display:flex;align-items:center;gap:8px;">⚠️ تحذير: تم اكتشاف ${errs.length} تعارض — <span style="font-weight:600">${errs.slice(0,3).join(' | ')}</span></div>` : ''; })()}
+      ${(()=>{ const errs=validateSched(t.sched, t.id); return errs.length>0 ? `<div style="background:#fce4e4;border:2px solid #c0392b;border-radius:8px;padding:9px 16px;margin:8px 16px;font-size:12px;font-weight:700;color:#c0392b;display:flex;align-items:center;gap:8px;">⚠️ تحذير: تم اكتشاف ${errs.length} تعارض — <span style="font-weight:600">${errs.slice(0,3).join(' | ')}</span></div>` : ''; })()}
       <!-- Legend -->
       <div class="legend-row">${legend}</div>
 
@@ -1917,40 +2258,62 @@ function openAdd(day,period){
   document.getElementById('modal').classList.add('on');
 }
 
-function saveEdit(day,period){
+async function saveEdit(day,period){
   const t=getActiveTeacher(); if(!t) return;
+  await loadSavedSchedsCache(t.name);
   const subjId=parseInt(document.getElementById('mSubj').value);
   const classId=document.getElementById('mCls').value;
   const subj=t.subjects.find(s=>s.id===subjId);
   const cls=ALL_CLASSES.find(c=>c.id===classId);
+  if(!subj||!cls){toast('بيانات غير صحيحة','err');return;}
 
+  // فحص C5
+  const sc=subj.classes.find(c=>c.classId===classId);
+  const weeklyHours=sc?sc.hours:0;
+  const c5err=checkC5(t.sched, day, period, subjId, classId, weeklyHours);
+  if(c5err){toast(c5err,'err');return;}
 
+  // فحص C4: الحد اليومي 6 حصص
+  const dayFilled=PERIODS.filter(p=>p!==period&&t.sched[day]&&t.sched[day][p]).length;
+  if(dayFilled>=6){toast('⚠️ C4: تجاوز الحد الأقصى 6 حصص في هذا اليوم','err');return;}
 
+  // C1: تعارض مع معلم آخر في نفس الوقت
+  if(isClassBusyElsewhere(day, period, classId, t.id)){
+    toast('⚠️ C1: هذا الفصل مجدول عند معلم آخر في نفس الوقت','err');
+    return;
+  }
 
-  // فحص التعارض
-if(isClassBusyElsewhere(day, period, classId, t.id)){
-  toast('⚠️ تعارض: هذا الفصل مجدول عند معلم آخر في نفس الوقت','err');
-  return;
-}
-  t.sched[day][period]={subjId,subjName:subj.name,classId,className:cls.name,level:cls.level,pinned:document.getElementById('mPin').checked};
+  t.sched[day][period]={subjId,subjName:subj.name,classId,className:cls.name,level:cls.level,weeklyHours,pinned:document.getElementById('mPin').checked};
   closeModal(); renderSched(); updateStats();
 }
 
-function saveAdd(day,period){
+async function saveAdd(day,period){
   const t=getActiveTeacher(); if(!t) return;
+  await loadSavedSchedsCache(t.name);
   const subjId=parseInt(document.getElementById('mSubj').value);
   const classId=document.getElementById('mCls').value;
   const subj=t.subjects.find(s=>s.id===subjId);
   const cls=ALL_CLASSES.find(c=>c.id===classId);
+  if(!subj||!cls){toast('بيانات غير صحيحة','err');return;}
   if(!t.sched[day]) t.sched[day]={};
 
+  // فحص C5
+  const sc=subj.classes.find(c=>c.classId===classId);
+  const weeklyHours=sc?sc.hours:0;
+  const c5errAdd=checkC5(t.sched, day, period, subjId, classId, weeklyHours);
+  if(c5errAdd){toast(c5errAdd,'err');return;}
 
+  // فحص C4: الحد اليومي 6 حصص
+  const dayFilledAdd=PERIODS.filter(p=>p!==period&&t.sched[day]&&t.sched[day][p]).length;
+  if(dayFilledAdd>=6){toast('⚠️ C4: تجاوز الحد الأقصى 6 حصص في هذا اليوم','err');return;}
 
-if(isClassBusyElsewhere(day, period, classId, t.id)){
-  toast('⚠️ تعارض: هذا الفصل مجدول عند معلم آخر في نفس الوقت','err');
-  return;
-}
-  t.sched[day][period]={subjId,subjName:subj.name,classId,className:cls.name,level:cls.level,pinned:false};
+  // C1: تعارض مع معلم آخر في نفس الوقت
+  if(isClassBusyElsewhere(day, period, classId, t.id)){
+    toast('⚠️ C1: هذا الفصل مجدول عند معلم آخر في نفس الوقت','err');
+    return;
+  }
+
+  t.sched[day][period]={subjId,subjName:subj.name,classId,className:cls.name,level:cls.level,weeklyHours,pinned:false};
   closeModal(); renderSched(); updateStats();
 }
 
@@ -1971,25 +2334,53 @@ document.addEventListener('keydown',e=>{
 /* ============================================================
    STATS
 ============================================================ */
+function calcQualityScore(t){
+  if(!t.sched) return 0;
+  let score=100;
+  let gaps=0, busyDays=0, consecutive=0, prefViolations=0;
+
+  DAYS.forEach(d=>{
+    const daySlots=[];
+    for(let p=1;p<=8;p++){
+      const v=t.sched[d]&&t.sched[d][p];
+      daySlots.push(!!v);
+      if(v && t.prefs.bad.includes(p)) prefViolations++;
+    }
+    // فراغات بين الحصص
+    let first=-1,last=-1;
+    daySlots.forEach((has,i)=>{ if(has){if(first<0)first=i;last=i;} });
+    if(first>=0){
+      for(let i=first;i<=last;i++){ if(!daySlots[i]) gaps++; }
+    }
+    // أيام مزدحمة (أكثر من 6 حصص)
+    const dayCount=daySlots.filter(Boolean).length;
+    if(dayCount>6) busyDays++;
+    // حصص متتالية (أكثر من 3)
+    let con=0;
+    daySlots.forEach(has=>{ if(has){con++;if(con>3)consecutive++;} else con=0; });
+  });
+
+  score -= gaps*4;
+  score -= busyDays*5;
+  score -= consecutive*3;
+  score -= prefViolations*6;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
 function updateStats(){
   const t=getActiveTeacher(); if(!t) return;
   const total=t.subjects.reduce((a,s)=>a+s.classes.reduce((b,c)=>b+c.hours,0),0);
-  let filled=0,pHits=0,pTotal=0;
+  let filled=0;
   if(t.sched){
     DAYS.forEach(d=>{
-      Object.entries(t.sched[d]||{}).forEach(([p,v])=>{
-        if(v){ filled++; pTotal++;
-          if(t.prefs.good.includes(parseInt(p))) pHits++;
-        }
-      });
+      Object.values(t.sched[d]||{}).forEach(v=>{ if(v) filled++; });
     });
   }
+  const quality=t.sched?calcQualityScore(t):null;
   document.getElementById('sTotal').textContent=total;
   document.getElementById('sFilled').textContent=filled;
   document.getElementById('sFree').textContent=Math.max(0,total-filled);
-  document.getElementById('sPref').textContent=pTotal>0?Math.round(pHits/pTotal*100)+'%':'—';
-
-  // تحديث إجمالي الحصص في أسفل الجدول عند أي تعديل يدوي
+  document.getElementById('sPref').textContent=quality!==null?quality+'%':'—';
   const footerTotal = document.getElementById('footerTotalNum');
   if(footerTotal) footerTotal.textContent = filled;
 }
@@ -2440,47 +2831,229 @@ function exportCSV(){
 }
 
 /* ============================================================
+   TOGGLE PIN — تبديل تثبيت الحصة مباشرة من الجدول
+============================================================ */
+function togglePin(day, period){
+  const t=getActiveTeacher(); if(!t||!t.sched) return;
+  const slot=t.sched[day]&&t.sched[day][period];
+  if(!slot) return;
+  slot.pinned=!slot.pinned;
+  renderSched();
+  toast(slot.pinned?'📌 تم تثبيت الحصة':'🔓 تم إلغاء التثبيت','ok');
+}
+
+/* ============================================================
    DRAG & DROP
 ============================================================ */
 let _drag=null;
 function dStart(e,day,period){_drag={day,period};e.dataTransfer.effectAllowed='move';}
-function dDrop(e,day,period){
+async function dDrop(e,day,period){
   e.preventDefault();
   if(!_drag) return;
   const t=getActiveTeacher(); if(!t) return;
+  await loadSavedSchedsCache(t.name);
   // منع الإفلات في خانة اجتماع
   const mBlocks=getMeetingBlocks(t);
   if(mBlocks[`${day}_${period}`]){toast('⚠️ هذه الخانة محجوزة لاجتماع','err');_drag=null;return;}
+  // منع الحصة الثامنة يوم الخميس
+  if(blockThursday8 && day==='الخميس' && period===8){toast('🚫 الحصة الثامنة يوم الخميس ممنوعة','err');_drag=null;return;}
+
   const src=t.sched[_drag.day]&&t.sched[_drag.day][_drag.period];
   const dst=t.sched[day]&&t.sched[day][period];
   if(!src){_drag=null;return;}
-  // فحص التعارض للحصة المنقولة في اليوم الجديد
-  if(src){
-    const conflictSrc = PERIODS.filter(p=>p!==period).some(p2=>{
-      if(day===_drag.day && p2===_drag.period) return false;
-      const v=t.sched[day]&&t.sched[day][p2];
-     return v && v.classId===src.classId;
-    });
-    if(conflictSrc){
-      toast('⚠️ تعارض: هذا الفصل لديه حصة أخرى في اليوم المستهدف','err');
-      _drag=null; return;
-    }
+
+  // C4: فحص الحد اليومي للحصة المنقولة
+  const destDayCount = PERIODS.filter(p2=>p2!==period && t.sched[day]&&t.sched[day][p2]).length;
+  const addingToDestDay = !(day===_drag.day); // إذا نقلنا لنفس اليوم لا يتغير العدد
+  if(addingToDestDay && !dst && destDayCount>=6){
+    toast('⚠️ C4: تجاوز الحد الأقصى 6 حصص في اليوم المستهدف','err');_drag=null;return;
   }
-  // فحص التعارض للحصة الوجهة في اليوم الأصلي
+
+  // C5: فحص الحصة المنقولة في اليوم الجديد
+  const c5src = checkC5(t.sched, day, period, src.subjId, src.classId, src.weeklyHours||0);
+  if(c5src){toast(c5src,'err');_drag=null;return;}
+
+  // C5: فحص الحصة المُبدَّلة في اليوم الأصلي (عند التبديل بين يومين)
   if(dst && day!==_drag.day){
-    const conflictDst = PERIODS.filter(p=>p!==_drag.period).some(p2=>{
-      const v=t.sched[_drag.day]&&t.sched[_drag.day][p2];
-     return v && v.classId===dst.classId;
-    });
-    if(conflictDst){
-      toast('⚠️ تعارض: الفصل المُبدَّل لديه حصة في اليوم الأصلي','err');
-      _drag=null; return;
-    }
+    const c5dst = checkC5(t.sched, _drag.day, _drag.period, dst.subjId, dst.classId, dst.weeklyHours||0);
+    if(c5dst){toast(c5dst,'err');_drag=null;return;}
   }
+
+  // C1: تعارض مع معلم آخر في الوقت المستهدف
+  if(isClassBusyElsewhere(day, period, src.classId, t.id)){
+    toast('⚠️ C1: هذا الفصل مجدول عند معلم آخر في الوقت المستهدف','err');_drag=null;return;
+  }
+  if(dst && isClassBusyElsewhere(_drag.day, _drag.period, dst.classId, t.id)){
+    toast('⚠️ C1: الفصل المُبدَّل مجدول عند معلم آخر في الوقت الأصلي','err');_drag=null;return;
+  }
+
   t.sched[day][period]=src;
   if(dst) t.sched[_drag.day][_drag.period]=dst;
   else delete t.sched[_drag.day][_drag.period];
   _drag=null; renderSched(); updateStats(); toast('✓ تم النقل بدون تعارض','ok');
+}
+
+/* ============================================================
+   إعادة توليد جميع الجداول مع تثبيت جدول واحد
+============================================================ */
+async function regenerateAll(){
+  const btn = document.getElementById('btnRegenAll');
+  const progressEl = document.getElementById('regenAllProgress');
+  const barEl = document.getElementById('regenAllBar');
+  const labelEl = document.getElementById('regenAllLabel');
+  const statusEl = document.getElementById('regenAllStatus');
+  const pinnedKey = document.getElementById('pinnedTeacherSelect').value;
+
+  // تحميل جميع الجداول المحفوظة
+  let allSnaps;
+  try{ allSnaps = await dbAll(); }
+  catch(e){ toast('تعذّر تحميل الجداول','err'); return; }
+
+  if(!allSnaps.length){ toast('لا توجد جداول محفوظة','err'); return; }
+
+  // احتفظ بآخر نسخة لكل معلم فقط
+  const latestMap = {};
+  allSnaps.forEach(s=>{
+    const k = `${s.teacherName}|${s.school}`;
+    if(!latestMap[k] || s.savedAt > latestMap[k].savedAt) latestMap[k] = s;
+  });
+  const snaps = Object.values(latestMap);
+
+  if(!confirm(`سيتم إعادة توليد ${snaps.length} جدول.\n${pinnedKey ? `الجدول المثبّت: ${pinnedKey.split('|')[0]} — لن يتغير.` : 'لا يوجد جدول مثبّت.'}\n\nهل تريد المتابعة؟`)) return;
+
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  progressEl.style.display = '';
+
+  // فرز: الجدول المثبّت أولاً، ثم الباقي
+  snaps.sort((a,b)=>{
+    const ak = `${a.teacherName}|${a.school}`;
+    const bk = `${b.teacherName}|${b.school}`;
+    if(ak===pinnedKey) return -1;
+    if(bk===pinnedKey) return 1;
+    return 0;
+  });
+
+  const done = []; // الجداول المولّدة حتى الآن (للفحص المتراكم)
+  let successCount = 0;
+  let failCount = 0;
+
+  for(let i=0; i<snaps.length; i++){
+    const snap = snaps[i];
+    const tKey = `${snap.teacherName}|${snap.school}`;
+    const pct = Math.round((i/snaps.length)*100);
+    barEl.style.width = pct+'%';
+    labelEl.textContent = `جاري التوليد: ${snap.teacherName} (${i+1}/${snaps.length})`;
+
+    // استعادة بيانات المعلم
+    const tData = JSON.parse(JSON.stringify(snap.data));
+
+    // الجدول المثبّت: تثبيت كل حصصه ونقله مباشرة
+    if(tKey === pinnedKey){
+      if(tData.sched){
+        DAYS.forEach(d=>{ PERIODS.forEach(p=>{ const v=tData.sched[d]&&tData.sched[d][p]; if(v) v.pinned=true; }); });
+      }
+      done.push({ key: tKey, sched: tData.sched, data: tData, snap });
+      statusEl.textContent = `✓ ${snap.teacherName} — مثبّت لن يتغير`;
+      successCount++;
+      continue;
+    }
+
+    // بناء slots من بيانات المعلم
+    const slots = [];
+    (tData.subjects||[]).forEach(subj=>{
+      (subj.classes||[]).forEach(sc=>{
+        const cls = ALL_CLASSES.find(c=>c.id===sc.classId); if(!cls) return;
+        for(let h=0;h<sc.hours;h++){
+          slots.push({ subjId:subj.id, subjName:subj.name, classId:cls.id,
+            className:cls.name, level:cls.level, weeklyHours:sc.hours,
+            key:`${subj.id}_${cls.id}` });
+        }
+      });
+    });
+
+    if(!slots.length){
+      statusEl.textContent = `⚠ ${snap.teacherName} — لا توجد مواد، تم تخطيه`;
+      done.push({ key:tKey, sched: tData.sched, data:tData, snap });
+      continue;
+    }
+
+    // جميع الجداول السابقة كقيود
+    const prevScheds = done.map(d=>d.sched).filter(Boolean);
+
+    // محاولة التوليد
+    const MAX_TRIES = 80;
+    let newSched = null;
+
+    // نموذج معلم مؤقت للتوليد
+    const tempT = { ...tData, id: Date.now()+i, sched: null,
+      prefs: tData.prefs||{good:[],bad:[]},
+      subjects: tData.subjects||[] };
+
+    // حفظ activeTeacherId مؤقتاً
+    const savedActiveId = activeTeacherId;
+    teachers.push(tempT);
+    activeTeacherId = tempT.id;
+
+    for(let attempt=0; attempt<MAX_TRIES; attempt++){
+      newSched = trySchedule(slots, null, tempT, prevScheds);
+      if(newSched){
+        const errs = validateSched(newSched, tempT.id, prevScheds);
+        if(errs.length===0) break;
+        newSched = null;
+      }
+    }
+
+    // إزالة المعلم المؤقت
+    teachers = teachers.filter(x=>x.id!==tempT.id);
+    activeTeacherId = savedActiveId;
+
+    if(newSched){
+      tData.sched = newSched;
+      done.push({ key:tKey, sched:newSched, data:tData, snap });
+      statusEl.textContent = `✓ ${snap.teacherName} — تم بنجاح`;
+      successCount++;
+    } else {
+      // فشل التوليد — احتفظ بالجدول القديم
+      done.push({ key:tKey, sched:tData.sched, data:tData, snap });
+      statusEl.textContent = `✗ ${snap.teacherName} — فشل التوليد، احتُفظ بالجدول القديم`;
+      failCount++;
+    }
+
+    await new Promise(r=>setTimeout(r,30)); // انتظار صغير لتحديث الواجهة
+  }
+
+  // حفظ جميع الجداول المحدّثة
+  labelEl.textContent = 'جاري الحفظ...';
+  barEl.style.width = '90%';
+
+  for(const item of done){
+    try{
+      const newSnap = JSON.parse(JSON.stringify(item.snap));
+      newSnap.data = item.data;
+      newSnap.updatedAt = Date.now();
+      await dbPut(newSnap);
+      // تحديث النسخة النشطة
+      await dbActivePut({
+        teacherKey: item.key,
+        teacherName: item.snap.teacherName,
+        school: item.snap.school,
+        savedAt: Date.now(),
+        sched: item.sched ? JSON.parse(JSON.stringify(item.sched)) : null
+      });
+    }catch(e){ console.warn('خطأ في الحفظ:', e); }
+  }
+
+  _cachedSavedScheds = null; _cachedSavedTime = 0; _cachedForKey = null;
+
+  barEl.style.width = '100%';
+  labelEl.textContent = `✅ اكتمل — ${successCount} نجح${failCount>0?` | ${failCount} فشل`:''}`;
+  btn.disabled = false;
+  btn.style.opacity = '1';
+
+  await renderDBList();
+  updateActiveSchedsInfo();
+  toast(`✅ تمت إعادة توليد ${successCount} جدول بدون تعارض${failCount>0?` (${failCount} فشل)`:''}`, 'ok');
 }
 
 /* ══ Quick Save ══ */
